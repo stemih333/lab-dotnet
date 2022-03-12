@@ -1,13 +1,27 @@
 using API.Filters;
+using Microsoft.ApplicationInsights.Extensibility;
 
-Log.Logger = GetLoggerConfig().CreateLogger();
+Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting up");
 
     var builder = WebApplication.CreateBuilder(args);
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .Enrich.FromLogContext()
+            .MinimumLevel.Information()
+            .WriteTo.Console();
+
+        if (!builder.Environment.IsDevelopment())
+            configuration
+                .WriteTo.ApplicationInsights(services.GetRequiredService<TelemetryConfiguration>(), TelemetryConverter.Traces);
+    });
+
     var vaultUri = Environment.GetEnvironmentVariable("VAULT_URI");
 
     if (!string.IsNullOrEmpty(vaultUri))
@@ -33,29 +47,19 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application start-up failed");
-    File.AppendAllText("error.log", $"{Environment.NewLine }{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}: An error occurred: {ex.Message}");
 }
 finally
 {
     Log.CloseAndFlush();
 }
 
-static LoggerConfiguration GetLoggerConfig()
-{
-    return new LoggerConfiguration()
-        .Enrich.FromLogContext()
-        .MinimumLevel.Information()
-        .WriteTo.Console();
-}
-
 
 static void ConfigureServices(WebApplicationBuilder builder, bool authEnabled)
 {
-
     builder.Services.AddControllers(_ =>
     {
         _.Filters.Add<GlobalExceptionFilter>();
-    }).AddNewtonsoftJson(_ => _.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore);
+    });//.AddNewtonsoftJson(_ => _.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore);
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -75,7 +79,6 @@ static void ConfigureServices(WebApplicationBuilder builder, bool authEnabled)
     BookingLogicStartup.ConfigureServices(builder.Services);
     DbStartup.ConfigureServices(builder.Services, connectionString);
     StorageServicesStartup.ConfigureServices(builder.Services);
-    CultureInfo.CurrentUICulture = new CultureInfo("en-US");
 
     if (!authEnabled)
     {
@@ -85,7 +88,7 @@ static void ConfigureServices(WebApplicationBuilder builder, bool authEnabled)
     {
         AuthStartup.ConfigureServices(builder.Services);
 
-        builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd", subscribeToJwtBearerMiddlewareDiagnosticsEvents: true)
+        builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
             .EnableTokenAcquisitionToCallDownstreamApi()
             // .AddMicrosoftGraph(builder.Configuration.GetSection("DownstreamApi"))
             .AddInMemoryTokenCaches();
@@ -104,6 +107,9 @@ static void ConfigureServices(WebApplicationBuilder builder, bool authEnabled)
         // Disable automatic model state validation. Fluentvalidation takes care of validation in AppLogic layer.
         options.SuppressModelStateInvalidFilter = true;
     });
+
+    if (!builder.Environment.IsDevelopment())
+        builder.Services.AddApplicationInsightsTelemetry();
 }
 
 static void ConfigureApp(WebApplication app, IWebHostEnvironment env, bool authEnabled)

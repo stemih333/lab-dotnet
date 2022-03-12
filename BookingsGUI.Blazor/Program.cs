@@ -4,19 +4,31 @@ using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using BlazorComponents.Interfaces;
 using BlazorComponents.Services;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using Serilog;
 using System.Globalization;
 
-Log.Logger = GetLoggerConfig().CreateLogger();
-
+Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 try
 {
     Log.Information("Starting up");
 
     var builder = WebApplication.CreateBuilder(args);
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .Enrich.FromLogContext()
+            .MinimumLevel.Information()
+            .WriteTo.Console();
+
+        if (!builder.Environment.IsDevelopment())
+            configuration
+                .WriteTo.ApplicationInsights(services.GetRequiredService<TelemetryConfiguration>(), TelemetryConverter.Traces);
+    });
 
     if (!builder.Environment.IsDevelopment())
     {
@@ -41,20 +53,10 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application start-up failed");
-    File.AppendAllText("error.log", $"{Environment.NewLine }{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}: An error occurred: {ex.Message}");
 }
 finally
 {
     Log.CloseAndFlush();
-}
-
-
-static LoggerConfiguration GetLoggerConfig()
-{
-    return new LoggerConfiguration()
-        .Enrich.FromLogContext()
-        .MinimumLevel.Information()
-        .WriteTo.Console();
 }
 
 
@@ -94,6 +96,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddTransient<IBookingRowApiService, BookingRowApiService>();
     builder.Services.AddTransient<IBookingStatusApiService, BookingStatusApiService>();
     builder.Services.AddTransient<ICommentApiService, CommentApiService>();
+
+    if (!builder.Environment.IsDevelopment())
+        builder.Services.AddApplicationInsightsTelemetry();
 }
 
 static void ConfigureApp(WebApplication app, IWebHostEnvironment env)
