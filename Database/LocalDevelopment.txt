@@ -1,0 +1,8 @@
+﻿// Start database image if using docker
+docker run -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=Sommaren1984!' -p 1433:1433 -v C:\Users\ste_m\Desktop\Dev\SqlServer\data:/var/opt/mssql/data -v C:\Users\ste_m\Desktop\Dev\SqlServer\log:/var/opt/mssql/log -v C:\Users\ste_m\Desktop\Dev\SqlServer\secrets:/var/opt/mssql/secrets -d mcr.microsoft.com/mssql/server:2019-latest
+
+// Add migration
+dotnet ef migrations add <name> --startup-project ../EfMigrations/EfMigrations.csproj
+
+// Update database
+dotnet ef database update --startup-project ../EfMigrations/EfMigrations.csproj

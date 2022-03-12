@@ -1,0 +1,48 @@
+﻿
+<div class="single-line">
+	<span class="me-2 pointer @(ColumnName == CurrentSortColumnName ? "fw-bold" : "")" @onclick="Sort">@ColumnText</span>
+	@if (ColumnName == CurrentSortColumnName)
+	{
+		@if (SortOrder == "asc")
+		{
+			<i class="bi bi-sort-down-alt"></i>
+		} else
+		{
+			<i class="bi bi-sort-down"></i>
+		}
+	}
+</div>
+
+@code {
+	[Parameter]
+	public string? ColumnName { get; set; }
+	[Parameter]
+	public string? ColumnText { get; set; }
+	[CascadingParameter(Name = "SortOrder")]
+	public string? SortOrder { get; set; }
+	[CascadingParameter(Name = "CurrentSortColumnName")]
+	public string? CurrentSortColumnName { get; set; }
+	[Parameter]
+	public EventCallback<SortDirection> OnSortClick { get; set; }
+	[Parameter]
+    public bool HttpLoading { get; set; }
+
+	public async Task Sort()
+	{
+		if (HttpLoading)
+			return;
+
+		var sortOrder =
+			(ColumnName == CurrentSortColumnName) 
+			? (SortOrder == "asc") ? "desc" : "asc"
+			: "asc";
+
+		var model = new SortDirection
+		{
+			ColumnName = ColumnName!,
+			Order = sortOrder
+		};
+
+		await OnSortClick.InvokeAsync(model);
+	}
+}

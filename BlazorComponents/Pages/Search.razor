@@ -1,0 +1,48 @@
+﻿@page "/search"
+@using global::Models.Dtos
+@inject IBookingsApiService bookingApiService
+@inherits BaseLoadableComponent
+
+<PageTitle>Search</PageTitle>
+
+<main>
+	<article class="card mb-2" style="max-width:40rem">
+		<div class="card-body">
+			<SearchForm HttpLoading="HttpLoading" OnValidSubmit="OnFormSubmit" FormModel="FormModel" />
+		</div>
+	</article>
+	
+	<article class="card" >
+		<div class="card-body">
+			<SearchBookingTable HttpLoading="HttpLoading" TableData="TableData" OnSortClick="@OnSortCallback" SortColumn="@FormModel.SortColumn" SortOrder="@FormModel.SortOrder" />
+			<Paginator HttpLoading="HttpLoading" OnPageChange="@SearchBookings" CurrentPage="@FormModel.Page" PageSize="@FormModel.PageSize" TotalNumberOfRows="@TotalNumberOfRows" />
+		</div>
+	</article>
+
+</main>
+
+@code {
+	public SearchBookingsQuery FormModel = new();
+	private IEnumerable<SearchBookingDto> TableData = new List<SearchBookingDto>();
+	private int TotalNumberOfRows = 0;
+
+	public async Task OnFormSubmit(EditContext context)
+	{
+		await SearchBookings(0);
+	}
+
+	public async Task OnSortCallback(SortDirection direction)
+	{
+		FormModel.SortColumn = direction.ColumnName;
+		FormModel.SortOrder = direction.Order;
+		await SearchBookings(0);
+	}
+
+	private async Task SearchBookings(int? page)
+	{
+		if (page.HasValue) FormModel.Page = page;
+		var bookingResult = await bookingApiService.SearchBookings(FormModel);
+		TotalNumberOfRows = bookingResult?.TotalNumberOfRows ?? default;
+		TableData = bookingResult?.Results ?? new List<SearchBookingDto>();
+	}
+}

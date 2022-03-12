@@ -1,0 +1,83 @@
+﻿@using global::Models.Enums
+
+<EditForm OnValidSubmit="OnSubmitForm" class="row" Model="@FormModel" novalidate="@true">
+	<FluentValidationValidator />
+	<ValidationSummary />
+
+	<section class="col-lg-6">
+		<div class="mb-2">
+			<label class="form-label">From booking date</label>
+			<InputDate DisplayName="From booking date" @bind-Value="@FormModel.FromBookingDate"
+				class="form-control form-control-sm" disabled="@HttpLoading" />
+		</div>
+		<div class="mb-2">
+			<label class="form-label">To booking date</label>
+			<InputDate DisplayName="To booking date" @bind-Value="@FormModel.ToBookingDate"
+				class="form-control form-control-sm" disabled="@HttpLoading" />
+		</div>
+		<div class="mb-2">
+			<label class="form-label">From created date</label>
+			<InputDate DisplayName="From created date" @bind-Value="@FormModel.FromCreatedDate"
+				class="form-control form-control-sm" disabled="@HttpLoading" />
+		</div>
+		<div class="mb-2">
+			<label class="form-label">To created date</label>
+			<InputDate DisplayName="To created date" @bind-Value="@FormModel.ToCreatedDate"
+				class="form-control form-control-sm" disabled="@HttpLoading" />
+		</div>
+	</section>
+	<section class="col-lg-6">
+		<div class="mb-2">
+			<label class="form-label">Booking ID</label>
+			<InputNumber DisplayName="Booking ID" @bind-Value="@FormModel.Id" class="form-control form-control-sm"
+				disabled="@HttpLoading" />
+		</div>
+		<div class="mb-2">
+			<label class="form-label">Approver</label>
+			<InputText DisplayName="Approver" @bind-Value="@FormModel.Approver" class="form-control form-control-sm"
+				disabled="@HttpLoading" />
+		</div>
+		<div class="mb-2">
+			<label class="form-label">Created by</label>
+			<InputText DisplayName="Created by" @bind-Value="@FormModel.CreatedBy" class="form-control form-control-sm"
+				disabled="@HttpLoading" />
+		</div>
+		<div class="mb-2">
+			<label class="form-label">Status</label>
+			<InputSelect DisplayName="Status" @bind-Value="@FormModel.Status" class="form-control form-control-sm"
+				disabled="@HttpLoading">
+				<option value=""></option>
+				<option value="@BookingStatus.Saved">Saved</option>
+				<option value="@BookingStatus.Cancelled">Cancelled</option>
+				<option value="@BookingStatus.ToBeApproved">ToBeApproved</option>
+				<option value="@BookingStatus.ToBeBooked">ToBeBoooked</option>
+				<option value="@BookingStatus.Booked">Booked</option>
+			</InputSelect>
+		</div>
+	</section>
+	<section class="text-end">		
+		<button class="btn btn-sm btn-primary" type="submit" disabled="@(HttpLoading || !context.Validate())">
+			@if (HttpLoading)
+			{
+				<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+			}
+			Submit
+		</button>
+	</section>
+</EditForm>
+
+@code {
+	[Parameter]
+	public EventCallback<EditContext> OnValidSubmit { get; set; }
+	[Parameter]
+	public SearchBookingsQuery FormModel { get; set; } = new();
+	[Parameter]
+    public bool HttpLoading { get; set; }
+	private async Task OnSubmitForm(EditContext context)
+	{
+		if (!HttpLoading && context.Validate())
+		{
+			await OnValidSubmit.InvokeAsync(context);
+		}
+	}
+}

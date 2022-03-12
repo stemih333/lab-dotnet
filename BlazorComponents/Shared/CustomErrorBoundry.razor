@@ -1,0 +1,24 @@
+﻿@inherits ErrorBoundary
+@if(Exception != null)
+{
+	<div class="alert alert-danger" role="alert">
+		@Exception.Message
+		<button @onclick="RemoveErrorMessage" type="button" class="btn-close"></button>
+	</div>
+}
+@ChildContent
+
+@code {
+	private Exception? Exception { get; set; }
+	protected override Task OnErrorAsync(Exception exception)
+	{
+		Exception = exception;
+		return base.OnErrorAsync(exception);
+	}
+
+	private Task RemoveErrorMessage()
+	{
+		Exception = null;
+		return Task.CompletedTask;
+	}
+}

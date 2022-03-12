@@ -1,0 +1,94 @@
+﻿@page "/"
+@using global::Models.Enums
+@inject IHttpContextAccessor contextAccessor
+@inject IBookingsApiService bookingApiService
+@inherits BaseLoadableComponent
+
+<PageTitle>Home</PageTitle>
+
+<main class="row">
+	<section class="col-lg-7">
+		<h1>Welcome <b>@contextAccessor.HttpContext?.User.Identity?.Name</b> to Bookings!</h1>
+		<p>
+			Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi maximus in turpis quis placerat. Phasellus id commodo magna. Suspendisse quis risus eu ex efficitur egestas euismod a diam. Vivamus sed mauris risus. Praesent gravida cursus diam vitae tincidunt. Sed ex augue, venenatis non tellus eu, tempus tempor enim. Mauris non dictum nunc. Suspendisse potenti. Vivamus rhoncus iaculis ex, sit amet dignissim enim dignissim sed. Nulla dignissim nibh id aliquam interdum. Vestibulum facilisis quam ut nisl accumsan, a volutpat neque tempor. Duis aliquet purus metus, eu finibus diam tincidunt eget. Cras ut nisi orci. Aliquam nec congue odio. Praesent quis dui sit amet sem vestibulum condimentum.
+		</p>
+		<hr />
+		<div>
+			<AuthorizeView Roles="BookingRole.Reader">
+				<a class="btn btn-success @DisabledClass" href="/search">Search bookings</a>
+			</AuthorizeView>
+			<AuthorizeView Roles="BookingRole.Writer">
+				<a class="btn btn-primary @DisabledClass" href="/newBooking">Create new booking</a>
+			</AuthorizeView>
+		</div>
+	</section>
+	<section class="col-lg-5 mt-4">
+		<article class="card">
+			<div class="card-header">Bookings to approve</div>
+			<div class="card-body">
+				<table class="table table-sm">
+					<thead class="table-dark">
+						<tr>
+							<td>#</td>
+							<td>Booking date</td>
+							<td>Created by</td>
+						</tr>
+					</thead>
+					<tbody>
+						@if (LoadingData)
+						{
+							<tr>
+								<td colspan="4">Loading bookings to approve...</td>
+							</tr>
+						} else
+						{
+							@if(TableData.Any())
+							{
+								@foreach(var item in TableData)
+								{
+									<tr @key="item">
+										<td><a href="/booking/@item.Id">@item.Id</a></td>
+										<td>@item.BookingDate?.ToString("yyyy-MM-dd")</td>
+										<td>@item.CreatedBy</td>
+									</tr>
+								}
+							} else {
+								<tr>
+									<td colspan="4">No bookings to approve</td>
+								</tr>
+							}
+						}
+						
+						
+					</tbody>
+				</table>
+			</div>
+		</article>
+	</section>
+</main>
+
+@code {
+	private IEnumerable<SearchBookingDto> TableData = new List<SearchBookingDto>();
+	private bool LoadingData = false;
+	private async Task<SearchResultDto<SearchBookingDto>?> GetBookingsToApprove()
+	{
+		var approver = contextAccessor.HttpContext?.User.Identity?.Name;
+		if (string.IsNullOrWhiteSpace(approver))
+			throw new NullReferenceException("Could not fetch bookings to approve");
+
+		var searchQuery = new SearchBookingsQuery { Status = BookingStatus.ToBeApproved, Approver = approver };
+		return await bookingApiService.SearchBookings(searchQuery);	
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		LoadingData = true;
+		var res = await GetBookingsToApprove();
+		if (res != null)
+			TableData = res.Results;
+		LoadingData = false;
+		await base.OnInitializedAsync();
+	}
+}
+
+

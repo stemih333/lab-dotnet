@@ -1,0 +1,82 @@
+﻿@using Microsoft.JSInterop
+
+<table class="table table-bordered mb-0">
+	<thead>
+		<tr>
+			<th class="text-center">#</th>
+			<th>Account</th>
+			<th>Sub-account</th>
+			<th>Cost center</th>
+			<th>Amount</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		@if (Rows != null && Rows.Any())
+		{
+			@foreach(var row in Rows.Select((item, index) => new { Item = item, Index = index}))
+			{
+				<tr @key="@row.Item">
+					<td class="text-center">@(row.Index + 1)</td>
+					<td><InputText @bind-Value="@row.Item.Account" class="form-control form-control-sm" disabled="@Disabled" /></td>
+					<td><InputText @bind-Value="@row.Item.SubAccount" class="form-control form-control-sm" disabled="@Disabled" /></td>
+					<td><InputText @bind-Value="@row.Item.CostCenter" class="form-control form-control-sm" disabled="@Disabled" /></td>
+					<td><InputNumber placeholder="0.00" @bind-Value="@row.Item.Amount" @oninput="(e) => OnKeyDown(e, row.Index)" class="form-control form-control-sm" disabled="@Disabled"/></td>
+					<td><button type="button"  disabled="@Disabled" @onclick="@(() => RemoveRowClick(row.Index))" class="btn btn-sm btn-secondary"><i class="bi bi-trash"></i></button></td>
+				</tr>
+			}
+		} else
+		{
+			<tr>
+				<td colspan="10">No rows created</td>
+			</tr>
+		}
+		<tr>
+			<th colspan="4" class="text-end">Balance:</th>
+			<td colspan="2">@Balance</td>
+		</tr>
+	</tbody>
+</table>
+
+@code {
+	[Parameter]
+	public EventCallback<int> OnRemoveRowCallback { get; set; }
+
+	[Parameter]
+	public List<BookingRowDto> Rows { get; set; }
+	
+	[Parameter]
+    public bool Disabled { get; set; }
+
+	private decimal? Balance = 0.00M;
+
+	protected override void OnParametersSet()
+	{
+		CountBalance();
+		base.OnParametersSet();
+	}
+
+	private void OnKeyDown(ChangeEventArgs e, int index)
+	{
+		var parsed = decimal.TryParse(e.Value?.ToString(), out var amount);
+		Rows[index].Amount = parsed ? amount : null;
+		CountBalance();
+	}
+
+	private void CountBalance()
+	{
+		if (Rows != null && Rows.Any())
+		{
+			Balance = Rows.Select(_ => _.Amount).Where(_ => _.HasValue).Sum() ?? 0.00M;
+		} else
+		{
+			Balance = 0.00M;
+		}
+	}
+
+	private async Task RemoveRowClick(int index)
+	{
+		if (index >= 0)
+			await OnRemoveRowCallback.InvokeAsync(index);
+	}
+}

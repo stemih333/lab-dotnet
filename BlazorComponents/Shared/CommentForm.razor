@@ -1,0 +1,62 @@
+﻿
+<div >
+	
+	<section class="comment-wrapper mb-2">
+		<div class="list-group">
+			@if (Comments.Any())
+			{
+				@foreach(var comment in Comments)
+				{
+					<article href="#" class="list-group-item" >
+						<div class="d-flex w-100 justify-content-between">
+							<small>@comment.CreatedBy</small>
+							<small>@comment.Created?.ToString("yyyy-MM-dd HH:mm:ss")</small>
+						</div>
+						<p class="mb-1">@comment.Content</p>
+					</article>
+				}
+			} else
+			{
+				<article href="#" class="list-group-item" >
+					<p class="mb-1">No comments have been posted for this booking.</p>
+				</article>
+			}
+		</div>
+		
+	</section>
+	<section >	
+		<InputTextArea @bind-Value="@Comment" class="form-control " disabled="@Disabled" id="comment" />
+		<div id="comment" class="invalid-feedback">
+			Comment is not valid.
+		</div>
+		<div class="text-end">
+			<button type="button" class="btn btn-primary mt-1" @onclick="SubmitComment" disabled="@Disabled" >Save comment</button>
+		</div>
+	</section>
+</div>
+
+
+@code {
+	[Parameter]
+	public IEnumerable<CommentDto> Comments { get; set; }
+
+	[Parameter]
+	public EventCallback<string> OnCommentSubmit { get; set; }
+
+	[Parameter]
+	public bool Disabled { get; set; }
+	
+	[Parameter]
+	public string Comment { get; set; } = "";
+
+	private bool IsInvalid()
+	{
+		return Comment.Length > 300 || string.IsNullOrWhiteSpace(Comment);
+	}
+
+	public async void SubmitComment()
+	{
+		if (IsInvalid()) return;
+		await OnCommentSubmit.InvokeAsync(Comment);
+	}
+}

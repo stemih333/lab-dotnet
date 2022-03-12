@@ -1,0 +1,65 @@
+﻿@page "/newBooking"
+@inject IBookingsApiService _apiService
+@inject NavigationManager NavigationManager
+@inject IAlertService _alertService
+@inherits BaseLoadableComponent
+<main>
+	<EditForm OnValidSubmit="OnSubmitForm" novalidate="@true" Model="FormModel">
+		<FluentValidationValidator  />
+		<article class="card mb-2" style="max-width: 50rem">
+			<div class="card-header">Create new booking</div>
+			<div class="card-body">
+				<ValidationSummary />
+				<BookingHeader FormModel="@FormModel" Disabled="@HttpLoading"/>
+			</div>
+		</article>
+		<article class="card mb-2" style="max-width: 60rem">
+			<div class="card-header text-end">
+				<button type="button" class="btn btn-sm btn-primary" disabled="@HttpLoading" @onclick="AddNewRow"><i class="bi bi-plus-lg"></i> New row</button>
+			</div>
+			<div class="card-body p-0">
+				<div>
+					<BookingRowTable Disabled="@HttpLoading" OnRemoveRowCallback="RemoveRowCallback" Rows="@FormModel.Rows" />
+				</div>
+			</div>
+		</article>
+		<div>
+			<button class="btn btn-primary" disabled="@HttpLoading" type="submit">Save</button>
+		</div>
+	</EditForm>
+	
+</main>
+
+@code {
+	public NewBookingCommand FormModel { get; set; } = new();
+	private async Task OnSubmitForm(EditContext context)
+	{
+		if (!HttpLoading && context.Validate())
+		{
+			var result = await _apiService.CreateNewBooking(FormModel);
+			var message = $"Created booking with ID {result.Id}";
+			await _alertService.SetAlertMessage(new AlertMessage { Message = message });
+			NavigationManager.NavigateTo($"/booking/{result.Id}");
+		}
+	}
+
+	private void AddNewRow()
+	{	
+		FormModel.Rows.Add(new BookingRowDto());
+	}
+
+	public void RemoveRowCallback(int index)
+	{
+		if (FormModel.Rows != null && FormModel.Rows.Any())
+			FormModel.Rows.RemoveAt(index);
+	}
+
+	protected override void OnParametersSet()
+	{
+		if (FormModel.Rows == null)
+			FormModel.Rows = new List<BookingRowDto>();
+
+		FormModel.BookingDate = DateTime.Now;
+		base.OnParametersSet();
+	}
+}

@@ -1,0 +1,45 @@
+﻿@inject IAlertService _alertService
+@implements IDisposable
+
+@foreach (var item in CurrentMessages.Select((_, i) => new { CurrentMessage = _, Index = i }))
+{
+	<div class="alert alert-dismissible fade show @item.CurrentMessage.CssClass">
+		@((MarkupString)item.CurrentMessage.Message)
+		<button type="button" class="btn-close"  @onclick="@(() => RemoveCurrentMessage(item.Index))"></button>
+	</div>
+}
+
+@code {
+	private List<AlertMessage> CurrentMessages = new List<AlertMessage>();
+
+	private async Task OnAlertMessageChangedCallback(AlertMessage message)
+	{
+		CurrentMessages.Add(message);
+		await InvokeAsync(StateHasChanged);
+		var timer = new Timer(async (t) =>
+		{
+			var count = CurrentMessages.Count - 1;
+			await RemoveCurrentMessage(count);
+		}, null, message.Duration, Timeout.Infinite);
+	}
+
+	private async Task RemoveCurrentMessage(int index)
+	{
+		if (CurrentMessages.ElementAtOrDefault(index) != null)
+		{
+			CurrentMessages.RemoveAt(index);
+			await InvokeAsync(StateHasChanged);
+		}
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		_alertService.OnAlertMessageChanged += OnAlertMessageChangedCallback;
+		await base.OnInitializedAsync();
+	}
+
+	public void Dispose()
+	{
+		_alertService.OnAlertMessageChanged -= OnAlertMessageChangedCallback;
+	}
+}

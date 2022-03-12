@@ -1,0 +1,12 @@
+global using MediatR;
+global using Models.Dtos;
+global using AutoMapper;
+global using Models.Entities;
+global using FluentValidation;
+global using Common.Interfaces;
+global using Common.Exceptions;
+global using AppLogic.Bookings;
+global using Microsoft.EntityFrameworkCore;
+global using Models.Enums;
+global using Models.Constants;
+global using Microsoft.Extensions.Logging;

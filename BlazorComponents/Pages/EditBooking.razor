@@ -1,0 +1,197 @@
+﻿@page "/booking/{Id:int}"
+@using AppLogic.BookingRows
+@using AppLogic.Comments
+@using Models.Enums
+@inject NavigationManager NavigationManager
+@inject IJSRuntime _js
+@inject IAlertService _alertService
+@inject IBookingsApiService _bookingApi
+@inject IBookingRowApiService _bookingRowApi
+@inject IBookingStatusApiService _bookingStatusApi
+@inject ICommentApiService _commentApi
+@inherits BaseLoadableComponent
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Edit booking @Id</PageTitle>
+
+@if (!FormModel.BookingId.HasValue)
+{
+	<main>
+		<div class="d-flex justify-content-center">
+			<div class="spinner-border" role="status">
+				<span class="visually-hidden">Loading...</span>
+			</div>
+		</div>
+	</main>
+} else
+{	
+	<main>
+		<EditForm novalidate="@true" Model="FormModel">
+			<FluentValidationValidator  />
+			<article class="card mb-2" style="max-width: 40rem">
+				<div class="card-header">Create new booking</div>
+				<div class="card-body">
+					<ValidationSummary />
+						<section class="mb-2">
+							<h4>Booking ID: @FormModel.BookingId</h4>
+							<h5>Status: @Status.ToString()</h5>
+						</section>
+					<div class="mb-3" >
+						<BookingHeader FormModel="@FormModel" Disabled="@(HttpLoading || Disabled)" />
+					</div>
+					<CommentForm Comment="@NewComment" Comments="Comments" Disabled="@(HttpLoading || Disabled)" OnCommentSubmit="OnCommentSubmitCallback" />
+					
+				</div>
+			</article>
+			<article class="card mb-2" style="max-width: 60rem">
+				<div class="card-header text-end">
+					<button disabled="@HttpLoading" type="button" class="btn btn-sm btn-primary" @onclick="AddNewRow"><i class="bi bi-plus-lg"></i> New row</button>
+				</div>
+				<div class="card-body p-0">
+					<div>
+						<BookingRowTable OnRemoveRowCallback="RemoveRowCallback"  Disabled="@(HttpLoading || Disabled)" Rows="@FormModel.Rows"  />
+					</div>
+				</div>
+			</article>
+			<div>
+				@if (Status == BookingStatus.Saved)
+				{
+					<button class="btn btn-primary me-2" disabled="@(HttpLoading || Disabled)" @onclick="OnSaveBooking" type="button">Save</button>
+					<button class="btn btn-success me-2" disabled="@(HttpLoading || Disabled)" @onclick="OnSaveAndSendBooking" type="button">Save and Send</button>
+				}
+				@if (Status == BookingStatus.ToBeApproved || Status == BookingStatus.ToBeBooked || Status == BookingStatus.Saved)
+				{
+					<button class="btn btn-danger me-2" disabled="@(HttpLoading)" @onclick="CancelBooking" type="button">Cancel</button>
+				}
+				@if (Status == BookingStatus.ToBeApproved || Status == BookingStatus.ToBeBooked )
+				{
+					<button class="btn btn-warning me-2" disabled="@(HttpLoading)" @onclick="ReturnBooking" type="button">Return</button>
+				}
+			</div>
+		</EditForm>
+	</main>
+	
+}
+
+
+@code {
+	[Parameter]
+	public int Id { get; set; }
+
+	private UpdateBookingCommand FormModel { get; set; } = new();
+	private BookingStatus? Status { get; set; }
+	private bool Disabled = false;
+	private List<CommentDto> Comments { get; set; }
+	private string NewComment = "";
+	private async Task OnSaveBooking()
+	{
+		if (!HttpLoading)
+		{
+			await _bookingApi.UpdateBooking(FormModel);
+			var message = $"Booking updated";
+			await _alertService.SetAlertMessage(new AlertMessage { Message = message });
+		}
+	}
+
+	private async Task ReturnBooking()
+	{
+		if (!HttpLoading)
+		{
+			var message = await _bookingStatusApi.ChangeBookingStatus(new UpdateBookingStatusCommand { BookingId = FormModel.BookingId, Status = BookingStatus.Saved });
+			if (message != null) await _alertService.SetAlertMessage(message);
+			else
+			{
+				await _alertService.SetAlertMessage(new AlertMessage { Message = $"Booking with ID ${FormModel.BookingId} has been returned." });
+				NavigationManager.NavigateTo("/Search");
+			}
+		}
+	}
+
+	private async Task CancelBooking()
+	{
+		if (!HttpLoading)
+		{
+			var message = await _bookingStatusApi.ChangeBookingStatus(new UpdateBookingStatusCommand { BookingId = FormModel.BookingId, Status = BookingStatus.Cancelled });
+			if (message != null) await _alertService.SetAlertMessage(message);
+			else
+			{
+				await _alertService.SetAlertMessage(new AlertMessage { Message = $"Booking with ID ${FormModel.BookingId} has been cancelled." });
+				NavigationManager.NavigateTo("/Search");
+			}
+		}
+	}
+
+	private async Task OnSaveAndSendBooking()
+	{
+		if (!HttpLoading)
+		{
+			await _bookingApi.UpdateBooking(FormModel);
+			var status = !string.IsNullOrWhiteSpace(FormModel.Approver) ? BookingStatus.ToBeApproved : BookingStatus.ToBeBooked;
+			var message = await _bookingStatusApi.ChangeBookingStatus(new UpdateBookingStatusCommand { BookingId = FormModel.BookingId, Status = status });
+			if (message != null) await _alertService.SetAlertMessage(message);
+			else
+			{
+				await _alertService.SetAlertMessage(new AlertMessage { Message = $"Booking with ID ${FormModel.BookingId} has been saved and sent." });
+			}
+		}
+	}
+
+	private async void AddNewRow()
+	{
+		var newRowId = await _bookingRowApi.AddNewBookingRow(new NewBookingRowCommand { BookingId = FormModel.BookingId });
+		FormModel.Rows.Add(new BookingRowDto { Id = newRowId.Id, Amount = 0.00M });
+		await InvokeAsync(StateHasChanged);
+	}
+
+	public async void RemoveRowCallback(int index)
+	{
+		if (FormModel.Rows != null && FormModel.Rows.Any())
+		{
+			var rowToDelete = FormModel.Rows[index];
+			await _bookingRowApi.DeleteBookingRow(rowToDelete.Id.Value);
+			FormModel.Rows.RemoveAt(index);
+			await InvokeAsync(StateHasChanged);
+		}
+	}
+
+	public async void OnCommentSubmitCallback(string comment)
+	{
+		if (!HttpLoading)
+		{
+			NewComment = comment;
+			var command = new NewCommentCommand { BookingId = FormModel.BookingId, Comment = NewComment };
+			var id = await _commentApi.AddNewComment(command);
+			var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+			var commentDto = new CommentDto
+				{
+					Content = NewComment,
+					Created = DateTime.UtcNow,
+					CreatedBy = state?.User?.GetDisplayName()
+				};
+			Comments.Add(commentDto);
+			NewComment = "";
+			await InvokeAsync(StateHasChanged);
+		}	
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+		await base.OnParametersSetAsync();
+
+		var booking = await _bookingApi.GetBookingById(Id);
+		if (booking != null)
+		{
+			FormModel = new UpdateBookingCommand
+				{
+					Approver = booking.Approver,
+					BookingDate = booking.BookingDate,
+					BookingId = booking.Id,
+					Rows = booking.Rows?.ToList()
+				};
+			Status = booking.BookingStatus;
+			Disabled = booking.BookingStatus != BookingStatus.Saved;
+			Comments = booking.Comments.ToList();
+		}
+	}
+}

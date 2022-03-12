@@ -1,0 +1,34 @@
+﻿@inherits BaseLoadableComponent
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+	<div class="container">
+		<a class="navbar-brand" href="/">
+			<img src="_content/BlazorComponents/images/bootstrap-logo.svg" alt="" width="30" height="24">
+			Bookings
+		</a>
+		<button class="navbar-toggler"  type="button" data-bs-toggle="collapse" data-bs-target="#navbar"  >
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbar">
+			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+				<AuthorizeView Roles="BookingRole.Reader">
+					<li class="nav-item">
+						<NavLink href="/search" class="nav-link">Search</NavLink>
+					</li>
+				</AuthorizeView>
+				<AuthorizeView Roles="BookingRole.Writer">
+					<li class="nav-item">
+						<NavLink href="/newBooking" class="nav-link">Create</NavLink>
+					</li>
+				</AuthorizeView>
+			</ul>
+			<span class="navbar-text">
+				<LoginDisplay></LoginDisplay>
+			</span>
+		</div>
+	</div>
+</nav>
+
+@code {
+
+}

@@ -1,0 +1,74 @@
+@using global::Models.Dtos
+
+<table class="table table-sm">
+	<thead class="table-dark">
+		<CascadingValue Name="SortOrder" Value="@SortOrder">
+			<CascadingValue Name="CurrentSortColumnName" Value="@SortColumn">
+				<tr>
+					<td><SortableColumn HttpLoading="HttpLoading" ColumnName="Id" ColumnText="#" OnSortClick="@OnSortClickCallback" /></td>
+					<td><SortableColumn HttpLoading="HttpLoading" ColumnName="BookingStatus" ColumnText="Status" OnSortClick="@OnSortClickCallback" /></td>
+					<td><SortableColumn HttpLoading="HttpLoading" ColumnName="BookingDate" ColumnText="Booking date" OnSortClick="@OnSortClickCallback" /></td>
+					<td><SortableColumn HttpLoading="HttpLoading" ColumnName="CreatedBy" ColumnText="Created by" OnSortClick="@OnSortClickCallback" /></td>
+					<td><SortableColumn HttpLoading="HttpLoading" ColumnName="Created" ColumnText="Created date" OnSortClick="@OnSortClickCallback" /></td>
+					<td><SortableColumn HttpLoading="HttpLoading" ColumnName="Approver" ColumnText="Approver" OnSortClick="@OnSortClickCallback" /></td>
+				</tr>
+				
+			</CascadingValue>			
+		</CascadingValue>
+		
+	</thead>
+	<tbody>
+		@if (HttpLoading)
+		{
+			<tr>
+				<td colspan="10" class="text-center">
+					<div class="spinner-border" >
+						<span class="visually-hidden">Loading...</span>
+					</div>
+				</td>
+			</tr>
+		}
+		else
+		{
+			@if (TableData.Any())
+			{
+				@foreach (var item in TableData)
+				{
+					<tr @key="item">
+						<td><a href="/booking/@item.Id">@item.Id</a></td>
+						<td>@item.BookingStatus</td>
+						<td>@item.BookingDate?.ToString("yyyy-MM-dd")</td>
+						<td>@item.CreatedBy</td>
+						<td>@item.Created?.ToString("yyyy-MM-dd")</td>
+						<td>@item.Approver</td>
+					</tr>
+				}
+			}
+			else
+			{
+				<tr>
+					<td colspan="10">No bookings to display</td>
+				</tr>
+			}
+		}
+	</tbody>
+</table>
+
+@code {
+	[Parameter]
+	public IEnumerable<SearchBookingDto> TableData { get; set; } = new List<SearchBookingDto>();
+	[Parameter]
+	public string? SortColumn { get; set; }
+	[Parameter]
+	public string? SortOrder { get; set; }
+	[Parameter]
+    public bool HttpLoading { get; set; }
+	[Parameter]
+	public EventCallback<SortDirection> OnSortClick { get; set; }
+
+
+	public async Task OnSortClickCallback(SortDirection sortDirection)
+	{
+		await OnSortClick.InvokeAsync(sortDirection);
+	}
+}
