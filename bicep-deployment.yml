@@ -40,4 +40,19 @@ stages:
               artifactName: 'drop'
               downloadPath: '$(System.ArtifactsDirectory)'
 
-          - script: ls $(System.ArtifactsDirectory)/drop
+          - task: AzureCLI@2
+            displayName: 'Az cli deployment'
+            inputs:
+              azureSubscription: 'Azure service connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: | 
+                az deployment sub create \
+                  --location $(location) \
+                  --subscription '$(subscriptionId)' \ 
+                  --template-file main.bicep \
+                  --parameters \
+                    dbAdminPassword='$(dbAdminPassword)' \
+                    sendGridApiKey='$(sendGridApiKey)' \
+                    appSecret='$(appSecret)'
+              workingDirectory: $(System.ArtifactsDirectory)/drop
