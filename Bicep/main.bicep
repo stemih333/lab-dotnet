@@ -142,6 +142,7 @@ module keyVault 'modules/key-vault/key-vault.bicep' = {
     redis
     database
     gui
+    blobStorage
   ]
   params: {
     kvName: kvName
@@ -149,7 +150,7 @@ module keyVault 'modules/key-vault/key-vault.bicep' = {
     apiPrincipalId: webApi.outputs.principalId
     guiPrincipalId: gui.outputs.principalId
     location: location
-    azureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${blobStorage.outputs.storageAccountName};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${blobStorage.outputs.storageKey}'
+    storageName: blobStorage.outputs.storageAccountName
     callbackPath: callbackPath
     clientId: appClientId
     domain: domain
@@ -159,7 +160,7 @@ module keyVault 'modules/key-vault/key-vault.bicep' = {
     guiUrl: gui.outputs.baseUrl
     secret: appSecret
     sendGridApiKey: sendGridApiKey
-    redisConnectionString: '${redis.outputs.redisName}.redis.cache.windows.net:6380,password=${redis.outputs.redisKey},ssl=True,abortConnect=False'
+    redisName: redis.outputs.redisName
     dbConnectionString: 'Server=tcp:${database.outputs.serverName},1433;Initial Catalog=${database.outputs.dbName};Persist Security Info=False;User ID=${dbAdminLogin};Password=${dbAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
     aiInstrumentationKey: ai.outputs.appInsightsInstrumentationKey
   }

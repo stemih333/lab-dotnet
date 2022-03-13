@@ -20,5 +20,4 @@ resource redis 'Microsoft.Cache/Redis@2019-07-01' = {
   }
 }
 
-output redisName string = redis.properties.hostName
-output redisKey string = redis.properties.accessKeys.primaryKey
+output redisName string = redisName

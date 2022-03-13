@@ -13,8 +13,8 @@ param callbackPath string
 param dbConnectionString string
 param downstreamBaseUrl string
 param downstreamScopes string
-param redisConnectionString string
-param azureWebJobsStorage string
+param redisName string
+param storageName string
 param guiUrl string
 param clientId string
 @secure()
@@ -23,6 +23,14 @@ param secret string
 param sendGridApiKey string
 param aiInstrumentationKey string
 param kvName string
+
+resource redis 'Microsoft.Cache/Redis@2019-07-01' existing = {
+  name: redisName
+}
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' existing = {
+  name: storageName
+}
 
 resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: kvName
@@ -125,7 +133,7 @@ resource azureWebJobsStorageSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01
   name: 'AzureWebJobsStorage'
   parent: kv
   properties: {
-    value: azureWebJobsStorage
+    value: 'DefaultEndpointsProtocol=https;AccountName=${storageName};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
   }
 }
 
@@ -141,7 +149,7 @@ resource redisConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-
   name: 'Connectionstrings--Redis'
   parent: kv
   properties: {
-    value: redisConnectionString
+    value: '${redisName}.redis.cache.windows.net:6380,password=${redis.listKeys().primaryKey},ssl=True,abortConnect=False'
   }
 }
 

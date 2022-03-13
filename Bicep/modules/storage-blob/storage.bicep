@@ -52,4 +52,3 @@ resource toBeBooked 'Microsoft.Storage/storageAccounts/queueServices/queues@2021
 
 output storageAccountName string = storageAccount.name
 output id string = storageAccount.id
-output storageKey string = listKeys(storageAccount.id, storageAccount.apiVersion).keys[0].value
