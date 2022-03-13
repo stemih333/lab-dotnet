@@ -25,6 +25,7 @@ stages:
               PathtoPublish: '$(Build.ArtifactStagingDirectory)'
               ArtifactName: 'drop'
               publishLocation: 'Container'
+              
   - stage: DEV
     variables:
       -group: 'bookings-dev'
