@@ -1,5 +1,7 @@
+name: $(BuildDefinitionName)
+
 trigger:
-- development
+- none
 
 pool:
   vmImage: ubuntu-latest
