@@ -32,7 +32,7 @@ stages:
     jobs:
       - job: Deploy
         steps:
-          - script: echo $(dbAdminPassword)
+          - script: ls $(System.ArtifactsDirectory)
           - task: DownloadBuildArtifacts@1
             displayName: 'Download bicep files'
             inputs:
@@ -55,4 +55,3 @@ stages:
                     dbAdminPassword='$(dbAdminPassword)' \
                     sendGridApiKey='$(sendGridApiKey)' \
                     appSecret='$(appSecret)'
-              workingDirectory: '$(System.ArtifactsDirectory)'
