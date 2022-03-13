@@ -38,6 +38,7 @@ resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   tags: resourceTags
   properties: {
     sku: sku
+    enableSoftDelete: false
     tenantId: tenant().tenantId
     accessPolicies: [
       {
