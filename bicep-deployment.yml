@@ -48,11 +48,10 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: | 
                 az deployment sub create \
-                  --location $(location) \
+                  --location '$(location)' \
                   --subscription '$(subscriptionId)' \ 
-                  --template-file main.bicep \
+                  --template-file '$(System.ArtifactsDirectory)/drop/main.bicep' \
                   --parameters \
                     dbAdminPassword='$(dbAdminPassword)' \
                     sendGridApiKey='$(sendGridApiKey)' \
                     appSecret='$(appSecret)'
-              workingDirectory: $(System.ArtifactsDirectory)/drop
