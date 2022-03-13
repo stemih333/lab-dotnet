@@ -28,7 +28,8 @@ stages:
               
   - stage: DEV
     variables:
-      -group: bookings-dev
+      - group: bookings-dev
+      - group: bookings-common
     jobs:
       - job: Deploy
         steps:
@@ -49,10 +50,10 @@ stages:
               inlineScript: | 
                 az deployment sub create \
                   --location $(location) \
-                  --subscription $(subscriptionId) \ 
+                  --subscription '$(subscriptionId)' \ 
                   --template-file main.bicep \
                   --parameters \
-                    dbAdminPassword=$(dbAdminPassword) \
-                    sendGridApiKey=$(sendGridApiKey) \
-                    appSecret=$(appSecret)
+                    dbAdminPassword='$(dbAdminPassword)' \
+                    sendGridApiKey='$(sendGridApiKey)' \
+                    appSecret='$(appSecret)'
               workingDirectory: '$(System.ArtifactsDirectory)'
