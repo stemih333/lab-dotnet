@@ -40,4 +40,4 @@ stages:
               artifactName: 'drop'
               downloadPath: '$(System.ArtifactsDirectory)'
 
-          - script: ls $(System.ArtifactsDirectory)
+          - script: ls $(System.ArtifactsDirectory)/drop
