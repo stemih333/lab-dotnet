@@ -11,7 +11,6 @@ stages:
     jobs:
       - job: Build
         steps:
-          - script: echo $(location)
           - task: CopyFiles@2
             displayName: 'Copy bicep files'
             inputs:
