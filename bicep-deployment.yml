@@ -44,5 +44,13 @@ stages:
               azureSubscription: 'Azure service connection'
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
-              inlineScript: 'az deployment sub create --location $(location) --subscription $(subscriptionId) --template-file main.bicep'
+              inlineScript: | 
+                az deployment sub create 
+                  --location $(location) 
+                  --subscription $(subscriptionId) 
+                  --template-file main.bicep 
+                  --parameters 
+                    dbAdminPassword=$(dbAdminPassword) 
+                    sendGridApiKey=$(sendGridApiKey) 
+                    appSecret=$(appSecret)
               workingDirectory: '$(System.ArtifactsDirectory)'
