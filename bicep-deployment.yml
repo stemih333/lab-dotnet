@@ -46,12 +46,12 @@ stages:
               scriptType: 'bash'
               scriptLocation: 'inlineScript'
               inlineScript: | 
-                az deployment sub create 
-                  --location $(location) 
-                  --subscription $(subscriptionId) 
-                  --template-file main.bicep 
-                  --parameters 
-                    dbAdminPassword=$(dbAdminPassword) 
-                    sendGridApiKey=$(sendGridApiKey) 
+                az deployment sub create \
+                  --location $(location) \
+                  --subscription $(subscriptionId) \ 
+                  --template-file main.bicep \
+                  --parameters \
+                    dbAdminPassword=$(dbAdminPassword) \
+                    sendGridApiKey=$(sendGridApiKey) \
                     appSecret=$(appSecret)
               workingDirectory: '$(System.ArtifactsDirectory)'
