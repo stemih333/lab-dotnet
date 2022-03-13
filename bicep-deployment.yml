@@ -12,6 +12,7 @@ stages:
     jobs:
       - job: Build
         steps:
+          - script: echo $(location)
           - task: CopyFiles@2
             displayName: 'Copy bicep files'
             inputs:
@@ -32,6 +33,7 @@ stages:
     jobs:
       - job: Deploy
         steps:
+          - script: echo $(dbAdminPassword)
           - task: DownloadBuildArtifacts@1
             displayName: 'Download bicep files'
             inputs:
