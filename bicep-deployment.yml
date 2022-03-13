@@ -7,7 +7,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  -group: 'bookings-common'
+  - group: bookings-common
 
 stages:
   - stage: Build
@@ -31,7 +31,7 @@ stages:
               
   - stage: DEV
     variables:
-      -group: 'bookings-dev'
+      -group: bookings-dev
     jobs:
       - job: Deploy
         steps:
