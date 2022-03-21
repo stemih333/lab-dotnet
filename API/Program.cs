@@ -1,8 +1,8 @@
 using API.Filters;
 using Microsoft.ApplicationInsights.Extensibility;
 
-Log.Logger = new LoggerConfiguration()
-            .WriteTo.Console()
+var aspEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+Log.Logger = SetLoggerConfig(new LoggerConfiguration(), aspEnv == "Development")
             .CreateBootstrapLogger();
 
 try
@@ -12,14 +12,7 @@ try
     var builder = WebApplication.CreateBuilder(args);
     builder.Host.UseSerilog((context, services, configuration) =>
     {
-        configuration
-            .Enrich.FromLogContext()
-            .MinimumLevel.Information()
-            .WriteTo.Console();
-
-        if (!builder.Environment.IsDevelopment())
-            configuration
-                .WriteTo.ApplicationInsights(services.GetRequiredService<TelemetryConfiguration>(), TelemetryConverter.Traces);
+        SetLoggerConfig(configuration, builder.Environment.IsDevelopment(), services);       
     });
 
     var vaultUri = Environment.GetEnvironmentVariable("VAULT_URI");
@@ -51,6 +44,26 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+static LoggerConfiguration SetLoggerConfig(LoggerConfiguration configuration, bool isDevelopment, IServiceProvider? serviceProvider = default)
+{
+    configuration
+        .Enrich.FromLogContext()
+        .MinimumLevel.Information()
+        .WriteTo.Console();
+
+    if (isDevelopment && serviceProvider != null)
+    {
+        var telementryConfig = serviceProvider != null 
+            ? serviceProvider.GetRequiredService<TelemetryConfiguration>() 
+            : TelemetryConfiguration.CreateDefault();
+
+        configuration
+            .WriteTo.ApplicationInsights(telementryConfig, TelemetryConverter.Traces);
+    }
+        
+    return configuration;
 }
 
 

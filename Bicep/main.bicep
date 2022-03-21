@@ -37,14 +37,14 @@ var defaultTags = {
 }
 var appWithEnv = '${applicationName}-${environment}'
 var resourceGroupName = 'rg-${appWithEnv}'
-var kvName = take('kw-${appWithEnv}', 24)
+var kvName = take('kv-${appWithEnv}', 24)
 var apiName = 'as-api-${appWithEnv}'
 var apiPlanName = 'asp-api-${appWithEnv}'
 var guiName = 'as-gui-${appWithEnv}'
 var guiPlanName = 'asp-gui-${appWithEnv}'
 var aiName = 'ai-${appWithEnv}'
 var redisName = 'redis-${appWithEnv}'
-var serverName = 'server-${appWithEnv}'
+var serverName = 'sqls-${appWithEnv}'
 var sqlDbName = 'sql-${appWithEnv}'
 var storageName = take('stg${take(replace(applicationName, '-', ''),14)}${environment}', 24)
 
@@ -101,6 +101,10 @@ var applicationEnvironmentVariables = [
     name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
     value: ai.outputs.appInsightsInstrumentationKey
   }
+  {
+    name: 'AzureAd:TenantId'
+    value: tenant().tenantId
+  }
 ]
 
 module gui 'modules/app-service/app-service.bicep' = {
@@ -111,9 +115,29 @@ module gui 'modules/app-service/app-service.bicep' = {
     appName: guiName
     appServicePlanName: guiPlanName
     resourceTags: defaultTags
-    environmentVariables: applicationEnvironmentVariables
+    environmentVariables: concat(applicationEnvironmentVariables, [
+      {
+        name: 'AzureAd:CallbackPath'
+        value: callbackPath
+      }
+      {
+        name: 'AzureAd:Domain'
+        value: domain
+      }
+      {
+        name: 'DownstreamApi:BaseUrl'
+        value: 'https://${webApi.outputs.baseUrl}'
+      }
+      {
+        name: 'DownstreamApi:Scopes'
+        value: downstreamScopes
+      }
+    ])
     sku: appSku
   }
+  dependsOn: [
+    webApi
+  ]
 }
 
 module webApi 'modules/app-service/app-service.bicep' = {
@@ -124,7 +148,12 @@ module webApi 'modules/app-service/app-service.bicep' = {
     appName: apiName
     appServicePlanName: apiPlanName
     resourceTags: defaultTags
-    environmentVariables: applicationEnvironmentVariables
+    environmentVariables: concat(applicationEnvironmentVariables, [
+      {
+        name: 'AppOptions:FromEmail'
+        value: fromEmail
+      }
+    ])
     sku: appSku
   }
 }
@@ -141,12 +170,8 @@ module ai 'modules/application-insights/app-insights.bicep' = {
 
 var secrets = [
   {
-    name: 'AppOptions--FromEmail'
-    value: fromEmail
-  }
-  {
     name: 'AppOptions--GuiUrl'
-    value: fromEmail
+    value: 'https://${gui.outputs.baseUrl}'
   }
   {
     name: 'AzureAd--ClientId'
@@ -157,32 +182,12 @@ var secrets = [
     value: appSecret
   }
   {
-    name: 'AzureAd--TenantId'
-    value: tenant().tenantId
-  }
-  {
-    name: 'AzureAd--CallbackPath'
-    value: callbackPath
-  }
-  {
-    name: 'AzureAd--Domain'
-    value: domain
-  }
-  {
     name: 'AzureWebJobsSendGridApiKey'
     value: sendGridApiKey
   }
   {
     name: 'Connectionstrings--BookingDbConnectionString'
     value: 'Server=tcp:${database.outputs.serverName},1433;Initial Catalog=${sqlDbName};Persist Security Info=False;User ID=${dbAdminLogin};Password=${dbAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
-  }
-  {
-    name: 'DownstreamApi--BaseUrl'
-    value: 'https://${webApi.outputs.baseUrl}'
-  }
-  {
-    name: 'DownstreamApi--Scopes'
-    value: downstreamScopes
   }
 ]
 
