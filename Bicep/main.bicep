@@ -30,14 +30,23 @@ param appClientId string = '43b0f80e-2c9c-4e0f-8bbc-5f0cf200110f'
 param appSecret string
 @secure()
 param sendGridApiKey string
-param alwaysOn bool = false
 
 var defaultTags = {
   'environment': environment
   'application': applicationName
 }
-var resourceGroupName = 'rg-${applicationName}-${environment}'
-var kvName = 'kw-${applicationName}-${environment}'
+var appWithEnv = '${applicationName}-${environment}'
+var resourceGroupName = 'rg-${appWithEnv}'
+var kvName = take('kw-${appWithEnv}', 24)
+var apiName = 'as-api-${appWithEnv}'
+var apiPlanName = 'asp-api-${appWithEnv}'
+var guiName = 'as-gui-${appWithEnv}'
+var guiPlanName = 'asp-gui-${appWithEnv}'
+var aiName = 'ai-${appWithEnv}'
+var redisName = 'redis-${appWithEnv}'
+var serverName = 'server-${appWithEnv}'
+var sqlDbName = 'sql-${appWithEnv}'
+var storageName = take('stg${take(replace(applicationName, '-', ''),14)}${environment}', 24)
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
@@ -50,8 +59,7 @@ module blobStorage 'modules/storage-blob/storage.bicep' = {
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    applicationName: applicationName
-    environment: environment
+    name: storageName
     resourceTags: defaultTags
   }
 }
@@ -61,12 +69,12 @@ module database 'modules/sql-server/sql-azure.bicep' = {
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    applicationName: applicationName
-    environment: environment
     tags: defaultTags
     administratorLogin: dbAdminLogin
     administratorPassword: dbAdminPassword
     sku: dbSku
+    serverName: serverName
+    sqlDBName: sqlDbName
   }
 }
 
@@ -75,8 +83,7 @@ module redis 'modules/redis/redis.bicep' = {
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    applicationName: applicationName
-    environment: environment
+    name: redisName
     resourceTags: defaultTags
   }
 }
@@ -90,78 +97,115 @@ var applicationEnvironmentVariables = [
     name: 'VAULT_URI'
     value: 'https://${kvName}${az.environment().suffixes.keyvaultDns}'
   }
-]
-
-module webApi 'modules/app-service/app-service.bicep' = {
-  name: 'webApi'
-  scope: resourceGroup(rg.name)
-  params: {
-    location: location
-    applicationName: '${applicationName}-api'
-    environment: environment
-    resourceTags: defaultTags
-    environmentVariables: applicationEnvironmentVariables
-    sku: appSku
-    alwaysOn: alwaysOn
+  {
+    name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+    value: ai.outputs.appInsightsInstrumentationKey
   }
-}
+]
 
 module gui 'modules/app-service/app-service.bicep' = {
   name: 'gui'
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    applicationName: '${applicationName}-gui'
-    environment: environment
+    appName: guiName
+    appServicePlanName: guiPlanName
     resourceTags: defaultTags
     environmentVariables: applicationEnvironmentVariables
     sku: appSku
-    alwaysOn: alwaysOn
   }
 }
 
+module webApi 'modules/app-service/app-service.bicep' = {
+  name: 'webApi'
+  scope: resourceGroup(rg.name)
+  params: {
+    location: location
+    appName: apiName
+    appServicePlanName: apiPlanName
+    resourceTags: defaultTags
+    environmentVariables: applicationEnvironmentVariables
+    sku: appSku
+  }
+}
 
 module ai 'modules/application-insights/app-insights.bicep' = {
   name: 'instrumentation'
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    applicationName: applicationName
-    environment: environment
+    name: aiName
     resourceTags: defaultTags
   }
 }
 
+var secrets = [
+  {
+    name: 'AppOptions--FromEmail'
+    value: fromEmail
+  }
+  {
+    name: 'AppOptions--GuiUrl'
+    value: fromEmail
+  }
+  {
+    name: 'AzureAd--ClientId'
+    value: appClientId
+  }
+  {
+    name: 'AzureAd--ClientSecret'
+    value: appSecret
+  }
+  {
+    name: 'AzureAd--TenantId'
+    value: tenant().tenantId
+  }
+  {
+    name: 'AzureAd--CallbackPath'
+    value: callbackPath
+  }
+  {
+    name: 'AzureAd--Domain'
+    value: domain
+  }
+  {
+    name: 'AzureWebJobsSendGridApiKey'
+    value: sendGridApiKey
+  }
+  {
+    name: 'Connectionstrings--BookingDbConnectionString'
+    value: 'Server=tcp:${database.outputs.serverName},1433;Initial Catalog=${sqlDbName};Persist Security Info=False;User ID=${dbAdminLogin};Password=${dbAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+  }
+  {
+    name: 'DownstreamApi--BaseUrl'
+    value: 'https://${webApi.outputs.baseUrl}'
+  }
+  {
+    name: 'DownstreamApi--Scopes'
+    value: downstreamScopes
+  }
+]
 
 module keyVault 'modules/key-vault/key-vault.bicep' = {
   name: 'keyVault'
   scope: resourceGroup(rg.name)
   dependsOn: [
     webApi
-    ai
-    redis
     database
     gui
     blobStorage
+    redis
   ]
   params: {
-    kvName: kvName
+    name: kvName
     resourceTags: defaultTags
-    apiPrincipalId: webApi.outputs.principalId
-    guiPrincipalId: gui.outputs.principalId
     location: location
-    storageName: blobStorage.outputs.storageAccountName
-    callbackPath: callbackPath
-    clientId: appClientId
-    domain: domain
-    fromEmail: fromEmail
-    downstreamScopes: downstreamScopes
-    downstreamBaseUrl: webApi.outputs.baseUrl
-    guiUrl: gui.outputs.baseUrl
-    secret: appSecret
-    sendGridApiKey: sendGridApiKey
-    redisName: redis.outputs.redisName
-    dbConnectionString: 'Server=tcp:${database.outputs.serverName},1433;Initial Catalog=${database.outputs.dbName};Persist Security Info=False;User ID=${dbAdminLogin};Password=${dbAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
-    aiInstrumentationKey: ai.outputs.appInsightsInstrumentationKey
+    storageName: storageName
+    redisName: redisName
+    secrets: secrets
+    principalIds: [
+      webApi.outputs.principalId
+      gui.outputs.principalId
+    ]
   }
 }

@@ -1,12 +1,9 @@
-param applicationName string
-param environment string = 'dev'
+param name string
 param location string
 param resourceTags object
 
-var appInsightsResourceName = 'ai-${applicationName}-${environment}'
-
 resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
-  name: appInsightsResourceName
+  name: name
   location: location
   tags: resourceTags
   kind: 'web'

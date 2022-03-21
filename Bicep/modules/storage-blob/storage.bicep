@@ -1,13 +1,9 @@
-
-param applicationName string
-param environment string = 'dev'
 param location string
 param resourceTags object
-
-var storageName = 'stg${take(replace(applicationName, '-', ''),14)}${environment}'
+param name string
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-08-01' = {
-  name: storageName
+  name: name
   location: location
   tags: resourceTags
   kind: 'StorageV2'

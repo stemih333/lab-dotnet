@@ -1,12 +1,9 @@
-param applicationName string
-param environment string = 'dev'
+param appName string
+param appServicePlanName string
 param location string
 param environmentVariables array
 param resourceTags object
 param sku object
-param alwaysOn bool
-var appServicePlanName = 'plan-${applicationName}-${environment}'
-var appName = 'app-${applicationName}-${environment}'
 
 resource appServicePlan 'Microsoft.Web/serverFarms@2020-12-01' = {
   name: appServicePlanName
@@ -33,13 +30,7 @@ resource appService 'Microsoft.Web/sites@2020-12-01' = {
       http20Enabled: true
       minTlsVersion: '1.2'
       appSettings: environmentVariables
-    }
-  }
-  resource config 'config' = {
-    name: 'web'
-    properties: {
       netFrameworkVersion: 'v6.0'
-      alwaysOn: alwaysOn
     }
   }
 }

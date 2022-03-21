@@ -1,12 +1,9 @@
-param applicationName string
-param environment string = 'dev'
+param name string
 param location string
 param resourceTags object
 
-var redisName = 'redis-${applicationName}-${environment}'
-
 resource redis 'Microsoft.Cache/Redis@2019-07-01' = {
-  name: redisName
+  name: name
   location: location
   tags: resourceTags
   properties: {
@@ -19,5 +16,3 @@ resource redis 'Microsoft.Cache/Redis@2019-07-01' = {
     }
   }
 }
-
-output redisName string = redisName

@@ -1,13 +1,10 @@
-param applicationName string
-param environment string = 'dev'
 param location string
 param tags object
 param administratorLogin string
 param administratorPassword string
 param sku object
-
-var serverName = 'server-${applicationName}-${environment}'
-var sqlDBName = 'sql-${applicationName}-${environment}'
+param serverName string
+param sqlDBName string
 
 resource sqlServer 'Microsoft.Sql/servers@2021-08-01-preview' = {
   name: serverName
@@ -40,4 +37,3 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2021-08-01-preview' = {
 }
 
 output serverName string = sqlServer.properties.fullyQualifiedDomainName
-output dbName string = sqlDBName
